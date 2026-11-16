@@ -1,0 +1,23 @@
+# Raw sequencing data
+*.fastq
+*.fastq.gz
+*.fq
+*.fq.gz
+*.sra
+
+# Alignment files
+*.bam
+*.sam
+*.bai
+
+# Reference indexes
+*.ht2
+*.ht2l
+*.idx
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# Conda environments
+.conda/
