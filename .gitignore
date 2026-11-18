@@ -21,3 +21,9 @@
 
 # Conda environments
 .conda/
+
+# Project data
+/data/
+/reference/
+/results/
+/logs/

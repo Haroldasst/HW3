@@ -1,0 +1,5 @@
+sample_id	geo_accession	sra_accession	cell_line	treatment
+N61311_untreated	GSM1275862	SRR1039508	N61311	untreated
+N61311_dex	GSM1275863	SRR1039509	N61311	dexamethasone
+N61311_albuterol	GSM1275864	SRR1039510	N61311	albuterol
+N052611_untreated	GSM1275866	SRR1039512	N052611	untreated
