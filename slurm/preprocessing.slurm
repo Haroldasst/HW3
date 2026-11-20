@@ -1,11 +1,11 @@
 #!/bin/bash
 
-#SBATCH --job-name=HW3_FastQC
+#SBATCH --job-name=HW3_Preprocessing
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=8G
 #SBATCH --time=02:00:00
-#SBATCH --output=logs/fastqc_%j.out
-#SBATCH --error=logs/fastqc_%j.err
+#SBATCH --output=logs/preprocessing_%j.out
+#SBATCH --error=logs/preprocessing_%j.err
 
 set -euo pipefail
 
