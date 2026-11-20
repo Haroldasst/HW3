@@ -14,4 +14,4 @@ cd "$SLURM_SUBMIT_DIR"
 source "$HOME/miniforge3/etc/profile.d/conda.sh"
 conda activate snakemake
 
-snakemake --cores "$SLURM_CPUS_PER_TASK" --sdm conda hisat2_index
+snakemake --cores "$SLURM_CPUS_PER_TASK" --sdm=conda hisat2_index
