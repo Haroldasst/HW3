@@ -27,3 +27,6 @@
 /reference/
 /results/
 /logs/
+
+# Snakemake
+.snakemake/
