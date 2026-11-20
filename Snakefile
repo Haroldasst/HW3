@@ -56,9 +56,9 @@ rule all:
         expand(
             f"{RESULTS_DIR}/alignment/{{sample}}.sorted.bam.bai",
             sample=SAMPLES
-        )
-
-
+        ),
+        f"{RESULTS_DIR}/featurecounts/gene_counts.txt",
+        f"{RESULTS_DIR}/featurecounts/gene_counts.txt.summary"
 
 rule fastqc_raw:
     input:
@@ -224,4 +224,47 @@ rule samtools_index:
     shell:
         """
         samtools index {input.bam} {output.bai}
+        """
+
+rule featurecounts:
+    input:
+        bams=expand(
+            f"{RESULTS_DIR}/alignment/{{sample}}.sorted.bam",
+            sample=SAMPLES
+        ),
+        annotation=config["reference"]["annotation"]
+
+    output:
+        counts=f"{RESULTS_DIR}/featurecounts/gene_counts.txt",
+        summary=f"{RESULTS_DIR}/featurecounts/gene_counts.txt.summary"
+
+    log:
+        f"{LOGS_DIR}/featurecounts.log"
+
+    threads:
+        config["threads"]["featurecounts"]
+
+    params:
+        feature_type=config["featurecounts"]["feature_type"],
+        attribute=config["featurecounts"]["attribute"],
+        strandedness=config["featurecounts"]["strandedness"]
+
+    conda:
+        "environment/featurecounts.yaml"
+
+    shell:
+        """
+        mkdir -p {RESULTS_DIR}/featurecounts {LOGS_DIR}
+
+        featureCounts \
+            -T {threads} \
+            -p \
+            --countReadPairs \
+            -s {params.strandedness} \
+            -t {params.feature_type} \
+            -g {params.attribute} \
+            -a {input.annotation} \
+            -o {output.counts} \
+            {input.bams} \
+            > {log} 2>&1
         """

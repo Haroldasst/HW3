@@ -23,3 +23,9 @@ threads:
   fastp: 4
   hisat2_index: 4
   hisat2_align: 4
+  featurecounts: 4
+
+featurecounts:
+  feature_type: "exon"
+  attribute: "gene_id"
+  strandedness: 0
