@@ -48,7 +48,17 @@ rule all:
             f"{RESULTS_DIR}/fastqc/trimmed/{{sample}}_{{mate}}_fastqc.zip",
             sample=SAMPLES, mate=[1, 2]
         ),
-        HISAT2_INDEXES
+        HISAT2_INDEXES,
+        expand(
+            f"{RESULTS_DIR}/alignment/{{sample}}.sorted.bam",
+            sample=SAMPLES
+        ),
+        expand(
+            f"{RESULTS_DIR}/alignment/{{sample}}.sorted.bam.bai",
+            sample=SAMPLES
+        )
+
+
 
 rule fastqc_raw:
     input:
@@ -159,4 +169,59 @@ rule hisat2_index:
         """
         mkdir -p {params.index_dir} {LOGS_DIR}
         hisat2-build -p {threads} {input.genome} {params.prefix} 2> {log}
+        """
+
+
+rule hisat2_align:
+    input:
+        r1=f"{TRIMMED_DIR}/{{sample}}_1.fastq.gz",
+        r2=f"{TRIMMED_DIR}/{{sample}}_2.fastq.gz",
+        index=HISAT2_INDEXES
+
+    output:
+        bam=f"{RESULTS_DIR}/alignment/{{sample}}.sorted.bam"
+
+    log:
+        f"{LOGS_DIR}/hisat2/{{sample}}.log"
+
+    threads:
+        config["threads"]["hisat2_align"]
+
+    params:
+        index=INDEX_PREFIX,
+        hisat2_threads=config["threads"]["hisat2_align"] - 1
+
+    conda:
+        "environment/alignment.yaml"
+
+    shell:
+        """
+        mkdir -p {RESULTS_DIR}/alignment
+        mkdir -p {LOGS_DIR}/hisat2
+
+        hisat2 \
+            -x {params.index} \
+            -1 {input.r1} \
+            -2 {input.r2} \
+            -p {params.hisat2_threads} \
+            2> {log} |
+        samtools sort \
+            -o {output.bam} -
+        """
+
+rule samtools_index:
+    input:
+        bam=f"{RESULTS_DIR}/alignment/{{sample}}.sorted.bam"
+
+    output:
+        bai=f"{RESULTS_DIR}/alignment/{{sample}}.sorted.bam.bai"
+
+    threads: 1
+
+    conda:
+        "environment/alignment.yaml"
+
+    shell:
+        """
+        samtools index {input.bam} {output.bai}
         """

@@ -22,3 +22,4 @@ threads:
   fastqc: 2
   fastp: 4
   hisat2_index: 4
+  hisat2_align: 4
