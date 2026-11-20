@@ -1,0 +1,20 @@
+samples: "config/samples.tsv"
+
+directories:
+  raw: "data/raw"
+  trimmed: "data/trimmed"
+  results: "results"
+  logs: "logs"
+
+reference:
+  genome: "reference/GRCh38.primary_assembly.genome.fa"
+  transcriptome: "reference/gencode.v50.transcripts.fa"
+  annotation: "reference/gencode.v50.primary_assembly.annotation.gtf"
+
+fastp:
+  quality: 20
+  window_size: 4
+
+threads:
+  fastqc: 2
+  fastp: 4
