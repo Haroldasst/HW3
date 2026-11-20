@@ -1,6 +1,7 @@
 configfile: "config/config.yaml"
 
 import csv
+import os
 
 with open(config["samples"]) as f:
     SAMPLES = [
@@ -13,6 +14,13 @@ TRIMMED_DIR = config["directories"]["trimmed"]
 RESULTS_DIR = config["directories"]["results"]
 LOGS_DIR = config["directories"]["logs"]
 
+INDEX_PREFIX = config["indexes"]["hisat2"]
+INDEX_DIR = os.path.dirname(INDEX_PREFIX)
+
+HISAT2_INDEXES = [
+    f"{INDEX_PREFIX}.{i}.ht2"
+    for i in range(1, 9)
+]
 
 rule all:
     input:
@@ -39,8 +47,8 @@ rule all:
         expand(
             f"{RESULTS_DIR}/fastqc/trimmed/{{sample}}_{{mate}}_fastqc.zip",
             sample=SAMPLES, mate=[1, 2]
-        )
-
+        ),
+        HISAT2_INDEXES
 
 rule fastqc_raw:
     input:
@@ -125,4 +133,30 @@ rule fastqc_trimmed:
         """
         mkdir -p {RESULTS_DIR}/fastqc/trimmed
         fastqc --threads {threads} --outdir {RESULTS_DIR}/fastqc/trimmed {input}
+        """
+
+rule hisat2_index:
+    input:
+        genome=config["reference"]["genome"]
+
+    output:
+        HISAT2_INDEXES
+
+    threads:
+        config["threads"]["hisat2_index"]
+
+    params:
+        prefix=INDEX_PREFIX,
+        index_dir=INDEX_DIR
+
+    conda:
+        "environment/alignment.yaml"
+
+    log:
+        f"{LOGS_DIR}/hisat2_index.log"
+
+    shell:
+        """
+        mkdir -p {params.index_dir} {LOGS_DIR}
+        hisat2-build -p {threads} {input.genome} {params.prefix} 2> {log}
         """

@@ -11,6 +11,9 @@ reference:
   transcriptome: "reference/gencode.v50.transcripts.fa"
   annotation: "reference/gencode.v50.primary_assembly.annotation.gtf"
 
+indexes:
+  hisat2: "reference/index/grch38"
+
 fastp:
   quality: 20
   window_size: 4
@@ -18,3 +21,4 @@ fastp:
 threads:
   fastqc: 2
   fastp: 4
+  hisat2_index: 4
