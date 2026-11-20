@@ -1,41 +1,128 @@
+configfile: "config/config.yaml"
+
 import csv
 
-with open("config/samples.tsv") as f:
+with open(config["samples"]) as f:
     SAMPLES = [
         row["sample_id"]
         for row in csv.DictReader(f, delimiter="\t")
     ]
 
+RAW_DIR = config["directories"]["raw"]
+TRIMMED_DIR = config["directories"]["trimmed"]
+RESULTS_DIR = config["directories"]["results"]
+LOGS_DIR = config["directories"]["logs"]
+
 
 rule all:
     input:
         expand(
-            "results/fastqc/raw/{sample}_{mate}_fastqc.html",
-            sample=SAMPLES,
-            mate=[1, 2]
+            f"{RESULTS_DIR}/fastqc/raw/{{sample}}_{{mate}}_fastqc.html",
+            sample=SAMPLES, mate=[1, 2]
         ),
         expand(
-            "results/fastqc/raw/{sample}_{mate}_fastqc.zip",
-            sample=SAMPLES,
-            mate=[1, 2]
+            f"{RESULTS_DIR}/fastqc/raw/{{sample}}_{{mate}}_fastqc.zip",
+            sample=SAMPLES, mate=[1, 2]
+        ),
+        expand(
+            f"{RESULTS_DIR}/fastp/{{sample}}.html",
+            sample=SAMPLES
+        ),
+        expand(
+            f"{RESULTS_DIR}/fastp/{{sample}}.json",
+            sample=SAMPLES
+        ),
+        expand(
+            f"{RESULTS_DIR}/fastqc/trimmed/{{sample}}_{{mate}}_fastqc.html",
+            sample=SAMPLES, mate=[1, 2]
+        ),
+        expand(
+            f"{RESULTS_DIR}/fastqc/trimmed/{{sample}}_{{mate}}_fastqc.zip",
+            sample=SAMPLES, mate=[1, 2]
         )
 
 
 rule fastqc_raw:
     input:
-        "data/raw/{sample}_{mate}.fastq.gz"
+        f"{RAW_DIR}/{{sample}}_{{mate}}.fastq.gz"
 
     output:
-        html="results/fastqc/raw/{sample}_{mate}_fastqc.html",
-        zip="results/fastqc/raw/{sample}_{mate}_fastqc.zip"
+        html=f"{RESULTS_DIR}/fastqc/raw/{{sample}}_{{mate}}_fastqc.html",
+        zip=f"{RESULTS_DIR}/fastqc/raw/{{sample}}_{{mate}}_fastqc.zip"
 
-    threads: 2
+    threads:
+        config["threads"]["fastqc"]
 
     conda:
         "environment/fastqc.yaml"
 
     shell:
         """
-        mkdir -p results/fastqc/raw
-        fastqc --threads {threads} --outdir results/fastqc/raw {input}
+        mkdir -p {RESULTS_DIR}/fastqc/raw
+        fastqc --threads {threads} --outdir {RESULTS_DIR}/fastqc/raw {input}
+        """
+
+
+rule fastp:
+    input:
+        r1=f"{RAW_DIR}/{{sample}}_1.fastq.gz",
+        r2=f"{RAW_DIR}/{{sample}}_2.fastq.gz"
+
+    output:
+        r1=f"{TRIMMED_DIR}/{{sample}}_1.fastq.gz",
+        r2=f"{TRIMMED_DIR}/{{sample}}_2.fastq.gz",
+        html=f"{RESULTS_DIR}/fastp/{{sample}}.html",
+        json=f"{RESULTS_DIR}/fastp/{{sample}}.json"
+
+    log:
+        f"{LOGS_DIR}/fastp_{{sample}}.log"
+
+    threads:
+        config["threads"]["fastp"]
+
+    params:
+        quality=config["fastp"]["quality"],
+        window_size=config["fastp"]["window_size"]
+
+    conda:
+        "environment/fastp.yaml"
+
+    shell:
+        """
+        mkdir -p {TRIMMED_DIR} {RESULTS_DIR}/fastp {LOGS_DIR}
+
+        fastp \
+            --in1 {input.r1} \
+            --in2 {input.r2} \
+            --out1 {output.r1} \
+            --out2 {output.r2} \
+            --detect_adapter_for_pe \
+            --cut_tail \
+            --cut_window_size {params.window_size} \
+            --cut_mean_quality {params.quality} \
+            --thread {threads} \
+            --html {output.html} \
+            --json {output.json} \
+            > {log} 2>&1
+        """
+
+
+rule fastqc_trimmed:
+    input:
+        f"{TRIMMED_DIR}/{{sample}}_{{mate}}.fastq.gz"
+
+    output:
+        html=f"{RESULTS_DIR}/fastqc/trimmed/{{sample}}_{{mate}}_fastqc.html",
+        zip=f"{RESULTS_DIR}/fastqc/trimmed/{{sample}}_{{mate}}_fastqc.zip"
+
+    threads:
+        config["threads"]["fastqc"]
+
+    conda:
+        "environment/fastqc.yaml"
+
+    shell:
+        """
+        mkdir -p {RESULTS_DIR}/fastqc/trimmed
+        fastqc --threads {threads} --outdir {RESULTS_DIR}/fastqc/trimmed {input}
         """
