@@ -22,6 +22,7 @@ RSEQC_DIR = config["quality"]["rseqc_dir"]
 DEEPTOOLS_DIR = config["quality"]["deeptools_dir"]
 BIGWIG_DIR = f"{DEEPTOOLS_DIR}/bigwig"
 GENEBODY_DIR = f"{RSEQC_DIR}/gene_body_coverage"
+BED12_SUBSET = config["quality"]["bed12_subset"]
 
 GENEBODY_OUTPUTS = expand(
     [
@@ -506,7 +507,7 @@ rule bam_coverage:
 rule gene_body_coverage2:
     input:
         bigwig=f"{BIGWIG_DIR}/{{sample}}.bw",
-        bed12=BED12
+        bed12=BED12_SUBSET
 
     output:
         report=f"{GENEBODY_DIR}/{{sample}}.geneBodyCoverage.txt",
@@ -531,5 +532,31 @@ rule gene_body_coverage2:
             -r {input.bed12} \
             -o {params.prefix} \
             -t pdf \
+            > {log} 2>&1
+        """
+
+rule subset_bed12:
+    input:
+        bed12=BED12
+
+    output:
+        BED12_SUBSET
+
+    params:
+        n=config["quality"]["gene_body_subset_size"],
+        seed=config["quality"]["gene_body_subset_seed"]
+
+    log:
+        f"{LOGS_DIR}/subset_bed12.log"
+
+    shell:
+        """
+        mkdir -p $(dirname {output}) $(dirname {log})
+
+        python scripts/subset_bed12.py \
+            --input {input.bed12} \
+            --output {output} \
+            --n {params.n} \
+            --seed {params.seed} \
             > {log} 2>&1
         """

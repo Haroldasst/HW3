@@ -42,3 +42,6 @@ quality:
   bin_size: 10000
   bigwig_bin_size: 50
   bigwig_normalization: "CPM"
+  bed12_subset: "reference/index/gencode.v50.annotation.subset10k.bed12"
+  gene_body_subset_size: 10000
+  gene_body_subset_seed: 42
