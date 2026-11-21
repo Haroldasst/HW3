@@ -50,3 +50,5 @@ quality:
   inner_distance_lower_bound: -250
   inner_distance_step: 10
   inner_distance_mapq: 30
+  correlation_method: "spearman"
+  pca_ntop: 500

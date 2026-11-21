@@ -24,6 +24,25 @@ BIGWIG_DIR = f"{DEEPTOOLS_DIR}/bigwig"
 GENEBODY_DIR = f"{RSEQC_DIR}/gene_body_coverage"
 BED12_SUBSET = config["quality"]["bed12_subset"]
 INNER_DISTANCE_DIR = f"{RSEQC_DIR}/inner_distance"
+COMPARISON_DIR = f"{DEEPTOOLS_DIR}/sample_comparison"
+
+BIGWIG_SUMMARY = f"{COMPARISON_DIR}/multiBigwigSummary.npz"
+BIGWIG_RAW = f"{COMPARISON_DIR}/multiBigwigSummary.tab"
+
+CORRELATION_PDF = f"{COMPARISON_DIR}/correlation_heatmap.pdf"
+CORRELATION_MATRIX = f"{COMPARISON_DIR}/correlation_matrix.tsv"
+
+PCA_PDF = f"{COMPARISON_DIR}/pca.pdf"
+PCA_DATA = f"{COMPARISON_DIR}/pca_data.tsv"
+
+SAMPLE_COMPARISON_OUTPUTS = [
+    BIGWIG_SUMMARY,
+    BIGWIG_RAW,
+    CORRELATION_PDF,
+    CORRELATION_MATRIX,
+    PCA_PDF,
+    PCA_DATA
+]
 
 INNER_DISTANCE_OUTPUTS = expand(
     [
@@ -112,7 +131,8 @@ rule all:
            sample=SAMPLES
         ),
         GENEBODY_OUTPUTS,
-        INNER_DISTANCE_OUTPUTS
+        INNER_DISTANCE_OUTPUTS,
+        SAMPLE_COMPARISON_OUTPUTS
 
 rule fastqc_raw:
     input:
@@ -611,5 +631,105 @@ rule inner_distance:
             -u {params.upper} \
             -s {params.step} \
             -q {params.mapq} \
+            > {log} 2>&1
+        """
+
+rule multi_bigwig_summary:
+    input:
+        bigwigs=expand(
+            f"{BIGWIG_DIR}/{{sample}}.bw",
+            sample=SAMPLES
+        )
+
+    output:
+        npz=BIGWIG_SUMMARY,
+        raw=BIGWIG_RAW
+
+    log:
+        f"{LOGS_DIR}/multi_bigwig_summary.log"
+
+    threads:
+        config["threads"]["deeptools"]
+
+    params:
+        bin_size=config["quality"]["bin_size"]
+
+    conda:
+        "environment/deeptools.yaml"
+
+    shell:
+        """
+        mkdir -p {COMPARISON_DIR} $(dirname {log})
+
+        multiBigwigSummary bins \
+            --bwfiles {input.bigwigs} \
+            --smartLabels \
+            --binSize {params.bin_size} \
+            --numberOfProcessors {threads} \
+            --outFileName {output.npz} \
+            --outRawCounts {output.raw} \
+            > {log} 2>&1
+        """
+
+rule plot_correlation:
+    input:
+        matrix=BIGWIG_SUMMARY
+
+    output:
+        pdf=CORRELATION_PDF,
+        matrix=CORRELATION_MATRIX
+
+    log:
+        f"{LOGS_DIR}/plot_correlation.log"
+
+    params:
+        method=config["quality"]["correlation_method"]
+
+    conda:
+        "environment/deeptools.yaml"
+
+    shell:
+        """
+        mkdir -p {COMPARISON_DIR} $(dirname {log})
+
+        plotCorrelation \
+            --corData {input.matrix} \
+            --corMethod {params.method} \
+            --whatToPlot heatmap \
+            --plotNumbers \
+            --skipZeros \
+            --plotTitle "Sample correlation" \
+            --plotFile {output.pdf} \
+            --outFileCorMatrix {output.matrix} \
+            > {log} 2>&1
+        """
+
+rule plot_pca:
+    input:
+        matrix=BIGWIG_SUMMARY
+
+    output:
+        pdf=PCA_PDF,
+        data=PCA_DATA
+
+    log:
+        f"{LOGS_DIR}/plot_pca.log"
+
+    params:
+        ntop=config["quality"]["pca_ntop"]
+
+    conda:
+        "environment/deeptools.yaml"
+
+    shell:
+        """
+        mkdir -p {COMPARISON_DIR} $(dirname {log})
+
+        plotPCA \
+            --corData {input.matrix} \
+            --plotFile {output.pdf} \
+            --outFileNameData {output.data} \
+            --ntop {params.ntop} \
+            --addLabels \
             > {log} 2>&1
         """
