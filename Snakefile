@@ -26,7 +26,8 @@ GENEBODY_DIR = f"{RSEQC_DIR}/gene_body_coverage"
 GENEBODY_OUTPUTS = expand(
     [
         f"{GENEBODY_DIR}/{{sample}}.geneBodyCoverage.txt",
-        f"{GENEBODY_DIR}/{{sample}}.geneBodyCoverage.curves.pdf"
+        f"{GENEBODY_DIR}/{{sample}}.geneBodyCoverage.pdf",
+        f"{GENEBODY_DIR}/{{sample}}.geneBodyCoverage_plot.r"
     ],
     sample=SAMPLES
 )
@@ -509,7 +510,8 @@ rule gene_body_coverage2:
 
     output:
         report=f"{GENEBODY_DIR}/{{sample}}.geneBodyCoverage.txt",
-        pdf=f"{GENEBODY_DIR}/{{sample}}.geneBodyCoverage.curves.pdf"
+        pdf=f"{GENEBODY_DIR}/{{sample}}.geneBodyCoverage.pdf",
+        rscript=f"{GENEBODY_DIR}/{{sample}}.geneBodyCoverage_plot.r"
 
     log:
         f"{LOGS_DIR}/gene_body_coverage2/{{sample}}.log"
