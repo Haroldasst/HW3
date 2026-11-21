@@ -45,3 +45,8 @@ quality:
   bed12_subset: "reference/index/gencode.v50.annotation.subset10k.bed12"
   gene_body_subset_size: 10000
   gene_body_subset_seed: 42
+  inner_distance_sample_size: 1000000
+  inner_distance_upper_bound: 1000
+  inner_distance_lower_bound: -250
+  inner_distance_step: 10
+  inner_distance_mapq: 30

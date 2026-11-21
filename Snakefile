@@ -23,6 +23,17 @@ DEEPTOOLS_DIR = config["quality"]["deeptools_dir"]
 BIGWIG_DIR = f"{DEEPTOOLS_DIR}/bigwig"
 GENEBODY_DIR = f"{RSEQC_DIR}/gene_body_coverage"
 BED12_SUBSET = config["quality"]["bed12_subset"]
+INNER_DISTANCE_DIR = f"{RSEQC_DIR}/inner_distance"
+
+INNER_DISTANCE_OUTPUTS = expand(
+    [
+        f"{INNER_DISTANCE_DIR}/{{sample}}.inner_distance.txt",
+        f"{INNER_DISTANCE_DIR}/{{sample}}.inner_distance_freq.txt",
+        f"{INNER_DISTANCE_DIR}/{{sample}}.inner_distance_plot.pdf",
+        f"{INNER_DISTANCE_DIR}/{{sample}}.inner_distance_plot.r"
+    ],
+    sample=SAMPLES
+)
 
 GENEBODY_OUTPUTS = expand(
     [
@@ -100,7 +111,8 @@ rule all:
            f"{RSEQC_DIR}/{{sample}}.read_distribution.txt",
            sample=SAMPLES
         ),
-        GENEBODY_OUTPUTS
+        GENEBODY_OUTPUTS,
+        INNER_DISTANCE_OUTPUTS
 
 rule fastqc_raw:
     input:
@@ -558,5 +570,46 @@ rule subset_bed12:
             --output {output} \
             --n {params.n} \
             --seed {params.seed} \
+            > {log} 2>&1
+        """
+
+rule inner_distance:
+    input:
+        bam=f"{RESULTS_DIR}/alignment/{{sample}}.sorted.bam",
+        bed12=BED12
+
+    output:
+        stats=f"{INNER_DISTANCE_DIR}/{{sample}}.inner_distance.txt",
+        freq=f"{INNER_DISTANCE_DIR}/{{sample}}.inner_distance_freq.txt",
+        pdf=f"{INNER_DISTANCE_DIR}/{{sample}}.inner_distance_plot.pdf",
+        rscript=f"{INNER_DISTANCE_DIR}/{{sample}}.inner_distance_plot.r"
+
+    params:
+        prefix=f"{INNER_DISTANCE_DIR}/{{sample}}",
+        sample_size=config["quality"]["inner_distance_sample_size"],
+        lower=config["quality"]["inner_distance_lower_bound"],
+        upper=config["quality"]["inner_distance_upper_bound"],
+        step=config["quality"]["inner_distance_step"],
+        mapq=config["quality"]["inner_distance_mapq"]
+
+    log:
+        f"{LOGS_DIR}/inner_distance/{{sample}}.log"
+
+    conda:
+        "environment/rseqc.yaml"
+
+    shell:
+        """
+        mkdir -p {INNER_DISTANCE_DIR} $(dirname {log})
+
+        inner_distance.py \
+            -i {input.bam} \
+            -r {input.bed12} \
+            -o {params.prefix} \
+            -k {params.sample_size} \
+            -l {params.lower} \
+            -u {params.upper} \
+            -s {params.step} \
+            -q {params.mapq} \
             > {log} 2>&1
         """
