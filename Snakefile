@@ -17,6 +17,9 @@ LOGS_DIR = config["directories"]["logs"]
 INDEX_PREFIX = config["indexes"]["hisat2"]
 KALLISTO_INDEX = config["indexes"]["kallisto"]
 INDEX_DIR = os.path.dirname(INDEX_PREFIX)
+BED12 = config["quality"]["bed12"]
+RSEQC_DIR = config["quality"]["rseqc_dir"]
+DEEPTOOLS_DIR = config["quality"]["deeptools_dir"]
 
 HISAT2_INDEXES = [
     f"{INDEX_PREFIX}.{i}.ht2"
@@ -71,7 +74,8 @@ rule all:
         expand(
             f"{RESULTS_DIR}/kallisto/{{sample}}/run_info.json",
             sample=SAMPLES
-        )
+        ),
+        BED12
 
 rule fastqc_raw:
     input:
@@ -346,4 +350,27 @@ rule kallisto_quant:
             {input.r1} \
             {input.r2} \
             > {log} 2>&1
+        """
+
+rule gtf_to_bed12:
+    input:
+        gtf=config["reference"]["annotation"]
+
+    output:
+        genepred="reference/index/gencode.v50.annotation.genePred",
+        bed12=BED12
+
+    log:
+        f"{LOGS_DIR}/gtf_to_bed12.log"
+
+    conda:
+        "environment/rseqc.yaml"
+
+    shell:
+        """
+        mkdir -p reference/index {LOGS_DIR}
+
+        gtfToGenePred {input.gtf} {output.genepred} 2> {log}
+
+        genePredToBed {output.genepred} {output.bed12} >> {log} 2>&1
         """

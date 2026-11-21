@@ -27,8 +27,16 @@ threads:
   featurecounts: 4
   kallisto_index: 2
   kallisto_quant: 4
+  rseqc: 4
+  deeptools: 4
 
 featurecounts:
   feature_type: "exon"
   attribute: "gene_id"
   strandedness: 0
+
+quality:
+  bed12: "reference/index/gencode.v50.annotation.bed12"
+  rseqc_dir: "results/quality/rseqc"
+  deeptools_dir: "results/quality/deeptools"
+  bin_size: 10000
