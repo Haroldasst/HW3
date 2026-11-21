@@ -56,4 +56,4 @@ quality:
 multiqc:
   output_dir: "results/multiqc"
   report: "results/multiqc/multiqc_report.html"
-  data_dir: "results/multiqc/multiqc_data"
+  data_dir: "results/multiqc/multiqc_report_data"
