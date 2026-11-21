@@ -32,3 +32,4 @@
 .snakemake/
 *.swp
 *.swo
+/tmp/
