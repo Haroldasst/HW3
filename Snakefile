@@ -15,6 +15,7 @@ RESULTS_DIR = config["directories"]["results"]
 LOGS_DIR = config["directories"]["logs"]
 
 INDEX_PREFIX = config["indexes"]["hisat2"]
+KALLISTO_INDEX = config["indexes"]["kallisto"]
 INDEX_DIR = os.path.dirname(INDEX_PREFIX)
 
 HISAT2_INDEXES = [
@@ -58,7 +59,19 @@ rule all:
             sample=SAMPLES
         ),
         f"{RESULTS_DIR}/featurecounts/gene_counts.txt",
-        f"{RESULTS_DIR}/featurecounts/gene_counts.txt.summary"
+        f"{RESULTS_DIR}/featurecounts/gene_counts.txt.summary",
+         expand(
+            f"{RESULTS_DIR}/kallisto/{{sample}}/abundance.tsv",
+            sample=SAMPLES
+        ),
+        expand(
+            f"{RESULTS_DIR}/kallisto/{{sample}}/abundance.h5",
+            sample=SAMPLES
+        ),
+        expand(
+            f"{RESULTS_DIR}/kallisto/{{sample}}/run_info.json",
+            sample=SAMPLES
+        )
 
 rule fastqc_raw:
     input:
@@ -266,5 +279,71 @@ rule featurecounts:
             -a {input.annotation} \
             -o {output.counts} \
             {input.bams} \
+            > {log} 2>&1
+        """
+
+rule kallisto_index:
+    input:
+        transcriptome=config["reference"]["transcriptome"]
+
+    output:
+        index=KALLISTO_INDEX
+
+    threads:
+        config["threads"]["kallisto_index"]
+
+    params:
+        index_dir=os.path.dirname(KALLISTO_INDEX)
+
+    conda:
+        "environment/kallisto.yaml"
+
+    log:
+        f"{LOGS_DIR}/kallisto_index.log"
+
+    shell:
+        """
+        mkdir -p {params.index_dir} {LOGS_DIR}
+
+        kallisto index \
+            -i {output.index} \
+            -t {threads} \
+            {input.transcriptome} \
+            > {log} 2>&1
+        """
+
+rule kallisto_quant:
+    input:
+        index=KALLISTO_INDEX,
+        r1=f"{TRIMMED_DIR}/{{sample}}_1.fastq.gz",
+        r2=f"{TRIMMED_DIR}/{{sample}}_2.fastq.gz"
+
+    output:
+        abundance=f"{RESULTS_DIR}/kallisto/{{sample}}/abundance.tsv",
+        h5=f"{RESULTS_DIR}/kallisto/{{sample}}/abundance.h5",
+        run_info=f"{RESULTS_DIR}/kallisto/{{sample}}/run_info.json"
+
+    log:
+        f"{LOGS_DIR}/kallisto/{{sample}}.log"
+
+    threads:
+        config["threads"]["kallisto_quant"]
+
+    params:
+        outdir=f"{RESULTS_DIR}/kallisto/{{sample}}"
+
+    conda:
+        "environment/kallisto.yaml"
+
+    shell:
+        """
+        mkdir -p {params.outdir} {LOGS_DIR}/kallisto
+
+        kallisto quant \
+            -i {input.index} \
+            -o {params.outdir} \
+            -t {threads} \
+            {input.r1} \
+            {input.r2} \
             > {log} 2>&1
         """

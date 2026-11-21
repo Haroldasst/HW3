@@ -13,6 +13,7 @@ reference:
 
 indexes:
   hisat2: "reference/index/grch38"
+  kallisto: "reference/index/gencode.v50.transcripts.idx"
 
 fastp:
   quality: 20
@@ -24,6 +25,8 @@ threads:
   hisat2_index: 4
   hisat2_align: 4
   featurecounts: 4
+  kallisto_index: 2
+  kallisto_quant: 4
 
 featurecounts:
   feature_type: "exon"
