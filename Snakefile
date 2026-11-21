@@ -75,7 +75,11 @@ rule all:
             f"{RESULTS_DIR}/kallisto/{{sample}}/run_info.json",
             sample=SAMPLES
         ),
-        BED12
+        BED12,
+        expand(
+            f"{RSEQC_DIR}/{{sample}}.infer_experiment.txt",
+            sample=SAMPLES
+        ),
 
 rule fastqc_raw:
     input:
@@ -373,4 +377,27 @@ rule gtf_to_bed12:
         gtfToGenePred {input.gtf} {output.genepred} 2> {log}
 
         genePredToBed {output.genepred} {output.bed12} >> {log} 2>&1
+        """
+rule infer_experiment:
+    input:
+        bam=f"{RESULTS_DIR}/alignment/{{sample}}.sorted.bam",
+        bed12=BED12
+
+    output:
+        report=f"{RSEQC_DIR}/{{sample}}.infer_experiment.txt"
+
+    log:
+        f"{LOGS_DIR}/infer_experiment/{{sample}}.log"
+
+    conda:
+        "environment/rseqc.yaml"
+
+    shell:
+        """
+        mkdir -p {RSEQC_DIR} $(dirname {log})
+
+        infer_experiment.py \
+            -r {input.bed12} \
+            -i {input.bam} \
+            > {output.report} 2> {log}
         """
