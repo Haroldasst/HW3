@@ -25,6 +25,11 @@ GENEBODY_DIR = f"{RSEQC_DIR}/gene_body_coverage"
 BED12_SUBSET = config["quality"]["bed12_subset"]
 INNER_DISTANCE_DIR = f"{RSEQC_DIR}/inner_distance"
 COMPARISON_DIR = f"{DEEPTOOLS_DIR}/sample_comparison"
+MULTIQC_DIR = config["multiqc"]["output_dir"]
+MULTIQC_REPORT = config["multiqc"]["report"]
+MULTIQC_DATA = config["multiqc"]["data_dir"]
+
+ANALYSIS_DONE = "results/.analysis_results.done"
 
 BIGWIG_SUMMARY = f"{COMPARISON_DIR}/multiBigwigSummary.npz"
 BIGWIG_RAW = f"{COMPARISON_DIR}/multiBigwigSummary.tab"
@@ -69,6 +74,10 @@ HISAT2_INDEXES = [
 ]
 
 rule all:
+    input:
+        MULTIQC_REPORT
+
+rule analysis_results:
     input:
         expand(
             f"{RESULTS_DIR}/fastqc/raw/{{sample}}_{{mate}}_fastqc.html",
@@ -133,6 +142,9 @@ rule all:
         GENEBODY_OUTPUTS,
         INNER_DISTANCE_OUTPUTS,
         SAMPLE_COMPARISON_OUTPUTS
+
+    output:
+        touch(ANALYSIS_DONE)
 
 rule fastqc_raw:
     input:
@@ -731,5 +743,43 @@ rule plot_pca:
             --outFileNameData {output.data} \
             --ntop {params.ntop} \
             --addLabels \
+            > {log} 2>&1
+        """
+
+rule multiqc:
+    input:
+        complete=ANALYSIS_DONE
+
+    output:
+        report=MULTIQC_REPORT,
+        data=directory(MULTIQC_DATA)
+
+    log:
+        f"{LOGS_DIR}/multiqc.log"
+
+    params:
+        outdir=MULTIQC_DIR,
+        filename=os.path.basename(MULTIQC_REPORT)
+
+    conda:
+        "environment/multiqc.yaml"
+
+    shell:
+        """
+        mkdir -p {params.outdir} $(dirname {log})
+
+        multiqc \
+            results/fastqc \
+            results/fastp \
+            results/alignment \
+            results/featurecounts \
+            results/kallisto \
+            results/quality \
+            logs \
+            --outdir {params.outdir} \
+            --filename {params.filename} \
+            --dirs \
+            --dirs-depth 2 \
+            --force \
             > {log} 2>&1
         """

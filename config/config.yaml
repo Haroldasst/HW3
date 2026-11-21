@@ -52,3 +52,8 @@ quality:
   inner_distance_mapq: 30
   correlation_method: "spearman"
   pca_ntop: 500
+
+multiqc:
+  output_dir: "results/multiqc"
+  report: "results/multiqc/multiqc_report.html"
+  data_dir: "results/multiqc/multiqc_data"

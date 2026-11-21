@@ -31,7 +31,9 @@ Reference genome: GRCh38
 - Snakemake
 - Conda
 - FastQC
+- fastp
 - HISAT2
+- SAMtools
 - featureCounts
 - kallisto
 - RSeQC
@@ -52,4 +54,29 @@ slurm/ - SLURM job scripts
 
 5. WORKFLOW EXECUTION
 
-Added later.
+- Downloading sequencing data.
+- Raw read quality control using FastQC.
+- Adapter and quality trimming using fastp.
+- HISAT2 alignment and featureCounts quantification.
+- Transcript quantification using kallisto.
+- Alignment quality assessment using RSeQC.
+- Sample correlation and PCA using deepTools.
+- Quality control reporting using MultiQC.
+
+6. WORKFLOW EXECUTION
+
+Check the workflow:
+
+snakemake -n --cores 4 --sdm=conda
+
+Run the workflow on HPC using SLURM:
+
+sbatch slurm/<script_name>.slurm
+
+Sample information and analysis parameters can be changed in the config/ directory.
+
+7. RESULTS
+
+Analysis results are stored in the results/ directory.
+
+The project also includes FastQC reports, featureCounts results, kallisto outputs, RSeQC and deepTools plots, and a MultiQC report.
