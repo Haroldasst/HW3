@@ -40,3 +40,5 @@ quality:
   rseqc_dir: "results/quality/rseqc"
   deeptools_dir: "results/quality/deeptools"
   bin_size: 10000
+  bigwig_bin_size: 50
+  bigwig_normalization: "CPM"

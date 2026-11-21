@@ -7,3 +7,4 @@ dependencies:
   - rseqc=5.0.5
   - ucsc-gtftogenepred=502
   - ucsc-genepredtobed=502
+  - r-base

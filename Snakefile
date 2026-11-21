@@ -20,6 +20,16 @@ INDEX_DIR = os.path.dirname(INDEX_PREFIX)
 BED12 = config["quality"]["bed12"]
 RSEQC_DIR = config["quality"]["rseqc_dir"]
 DEEPTOOLS_DIR = config["quality"]["deeptools_dir"]
+BIGWIG_DIR = f"{DEEPTOOLS_DIR}/bigwig"
+GENEBODY_DIR = f"{RSEQC_DIR}/gene_body_coverage"
+
+GENEBODY_OUTPUTS = expand(
+    [
+        f"{GENEBODY_DIR}/{{sample}}.geneBodyCoverage.txt",
+        f"{GENEBODY_DIR}/{{sample}}.geneBodyCoverage.curves.pdf"
+    ],
+    sample=SAMPLES
+)
 
 HISAT2_INDEXES = [
     f"{INDEX_PREFIX}.{i}.ht2"
@@ -80,6 +90,15 @@ rule all:
             f"{RSEQC_DIR}/{{sample}}.infer_experiment.txt",
             sample=SAMPLES
         ),
+        expand(
+            f"{RSEQC_DIR}/{{sample}}.bam_stat.txt",
+            sample=SAMPLES
+        ),
+        expand(
+           f"{RSEQC_DIR}/{{sample}}.read_distribution.txt",
+           sample=SAMPLES
+        ),
+        GENEBODY_OUTPUTS
 
 rule fastqc_raw:
     input:
@@ -378,6 +397,7 @@ rule gtf_to_bed12:
 
         genePredToBed {output.genepred} {output.bed12} >> {log} 2>&1
         """
+
 rule infer_experiment:
     input:
         bam=f"{RESULTS_DIR}/alignment/{{sample}}.sorted.bam",
@@ -400,4 +420,114 @@ rule infer_experiment:
             -r {input.bed12} \
             -i {input.bam} \
             > {output.report} 2> {log}
+        """
+
+rule bam_stat:
+    input:
+        bam=f"{RESULTS_DIR}/alignment/{{sample}}.sorted.bam"
+
+    output:
+        report=f"{RSEQC_DIR}/{{sample}}.bam_stat.txt"
+
+    log:
+        f"{LOGS_DIR}/bam_stat/{{sample}}.log"
+
+    conda:
+        "environment/rseqc.yaml"
+
+    shell:
+        """
+        mkdir -p {RSEQC_DIR} $(dirname {log})
+
+        bam_stat.py \
+            -i {input.bam} \
+            > {output.report} 2> {log}
+        """
+
+rule read_distribution:
+    input:
+        bam=f"{RESULTS_DIR}/alignment/{{sample}}.sorted.bam",
+        bed12=BED12
+
+    output:
+        report=f"{RSEQC_DIR}/{{sample}}.read_distribution.txt"
+
+    log:
+        f"{LOGS_DIR}/read_distribution/{{sample}}.log"
+
+    conda:
+        "environment/rseqc.yaml"
+
+    shell:
+        """
+        mkdir -p {RSEQC_DIR} $(dirname {log})
+
+        read_distribution.py \
+            -i {input.bam} \
+            -r {input.bed12} \
+            > {output.report} 2> {log}
+        """
+
+rule bam_coverage:
+    input:
+        bam=f"{RESULTS_DIR}/alignment/{{sample}}.sorted.bam"
+
+    output:
+        bigwig=f"{BIGWIG_DIR}/{{sample}}.bw"
+
+    log:
+        f"{LOGS_DIR}/bam_coverage/{{sample}}.log"
+
+    threads:
+        config["threads"]["deeptools"]
+
+    params:
+        bin_size=config["quality"]["bigwig_bin_size"],
+        normalization=config["quality"]["bigwig_normalization"]
+
+    conda:
+        "environment/deeptools.yaml"
+
+    shell:
+        """
+        mkdir -p {BIGWIG_DIR} $(dirname {log})
+
+        bamCoverage \
+            --bam {input.bam} \
+            --outFileName {output.bigwig} \
+            --outFileFormat bigwig \
+            --binSize {params.bin_size} \
+            --normalizeUsing {params.normalization} \
+            --numberOfProcessors {threads} \
+            > {log} 2>&1
+        """
+
+rule gene_body_coverage2:
+    input:
+        bigwig=f"{BIGWIG_DIR}/{{sample}}.bw",
+        bed12=BED12
+
+    output:
+        report=f"{GENEBODY_DIR}/{{sample}}.geneBodyCoverage.txt",
+        pdf=f"{GENEBODY_DIR}/{{sample}}.geneBodyCoverage.curves.pdf"
+
+    log:
+        f"{LOGS_DIR}/gene_body_coverage2/{{sample}}.log"
+
+    params:
+        prefix=lambda wildcards: f"{GENEBODY_DIR}/{wildcards.sample}"
+
+    conda:
+        "environment/rseqc.yaml"
+
+    shell:
+        """
+        mkdir -p {GENEBODY_DIR} $(dirname {log})
+
+        geneBody_coverage2.py \
+            -i {input.bigwig} \
+            -r {input.bed12} \
+            -o {params.prefix} \
+            -t pdf \
+            > {log} 2>&1
         """
